@@ -1,0 +1,4 @@
+private/
+.Rhistory
+.RData
+__pycache__/

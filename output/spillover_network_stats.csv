@@ -1,0 +1,3 @@
+tau,repos_sample,repos_with_sibling,repos_with_treated_sibling,repos_exposed_untreated,exposed_never_treated,exposed_later_treated,unexposed_controls,median_siblings,reviewer_set_median
+0.2,763,64,38,31,23,8,732,1,36
+0.3,763,43,26,20,15,5,743,1,36
