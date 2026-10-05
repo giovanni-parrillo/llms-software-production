@@ -1,6 +1,6 @@
-# Reproducibility package
 ## Master Thesis - MSc in Economics at University of Pisa and Sant'Anna School of Advanced Studies
 ## Giovanni Parrillo
+# Reproducibility package
 
 This archive reproduces the empirical design of my master thesis, including seven declared
 sample/covariate specifications, a static TWFE comparison,
