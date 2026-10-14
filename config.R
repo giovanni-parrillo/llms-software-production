@@ -15,6 +15,7 @@ library(did)
 # Define path variables
 PROJECT_DIR  <- normalizePath(getwd())
 DATA_DIR <- file.path(PROJECT_DIR, "data")
+source(file.path(PROJECT_DIR, "role_flows.R"))
 # OUTPUT_DIR overrides the results directory (e.g. for single-outcome runs that
 # must not overwrite the full-suite files in output/).
 OUT <- Sys.getenv("OUTPUT_DIR", file.path(PROJECT_DIR, "output"))
@@ -60,6 +61,7 @@ retained_outcomes <- c(
   # H4: validation authority
   "approver_hhi_excl_bots",
   "reviews_by_llm_bot_reviewer",
+  ROLE_FLOW_OUTCOMES,
 
   # H5: familiarity, exploration and socio-technical coordination
   "tc_author_experience_share_file",
@@ -153,11 +155,17 @@ prepare_data <- function() {
       )
 
 
+  role_flows <- build_role_flows(
+    file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
+    Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv"))
+  )
+
   panel <- panel |>
     select(-any_of("owner")) |> # remove owner column 
     left_join(pr6, by = "repo") |> # add 6-month baseline covariate
     left_join(pr3, by = "repo") |> # add 3-month baseline covariate
-    left_join(owners, by = "repo") # add non-company governance dummy
+    left_join(owners, by = "repo") |> # add non-company governance dummy
+    left_join(role_flows, by = c("repo", "month"))
 
 
   # The panel must contain at most one row per repository-month and treatment
