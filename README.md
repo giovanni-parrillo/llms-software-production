@@ -30,19 +30,7 @@ Rscript run_all.R
 
 Each script can also be run on its own with `Rscript <script>.R` from the package root. Generated files go to `output/`, which is created on the first run.
 
-## 2. Outcome definitions and limitations
-
-### Review-role flow outcomes
-
-The outcomes `role_flow_a<i>_r<j>` are built in `role_flows.R` from `author_reviewer_edges.csv.gz` and `login_types.csv`. Each is the share of a repository-month's interactions in which the pull-request author has role i and the reviewer has role j (0 = core, 1 = other human, 2 = bot). The core is the smallest set of human reviewers covering 80% of human interactions in the previous 12 months. A month enters only with at least 10 interactions and some human activity in the previous 12 months. Where a month does not enter, the flow is missing, not zero.
-
-Because the entry condition depends on activity, these outcomes are estimated on a smaller and differently composed sample: 616 repositories in the main specification, against 657 to 763 for the other outcomes. About 20% of never-treated repository-months and about 81% of eventually-treated repository-months after adoption have a defined flow, so the estimates are conditional on that availability. Otherwise they are ordinary outcomes in every script.
-
-### Spillover event-time estimates
-
-`spillover_cross_owner.csv` and `spillover_within_owner.csv` report the aggregate effect and the event-time effects for `e` in [-12, 12]. The estimator reports only the event times it identifies for each cohort, so an outcome can have fewer than 25 event-time rows (19 to 25 in the cross-owner file). Missing rows are not zeros.
-
-## 3. Data and anonymisation
+## 2. Data and anonymisation
 
 ### Data
 
@@ -66,20 +54,20 @@ python tools/anonymize.py anonymize-file data/login_types.csv login  # any plain
 
 `anonymize` acts only on raw logins. On the shipped data every login is already pseudonymised, so the command reports that there is nothing to do and creates nothing. The key and map in `private/` exist only for the original data. `restore` and `anonymize-file` need them. `private/` is gitignored and must not be shared with the data. Re-running any command is safe: values that already start with `u_` are left unchanged.
 
-## 4. Design notes
+## 3. Design notes
 
 - `fit_cs()` accepts `est_method` (`"dr"` by default, or `"ipw"`). All reported specifications use the doubly robust estimator, which already incorporates propensity-score weighting.
 - `output/balance.csv`: on the 6-month-baseline sample, ever-treated versus never-treated balance (means, SDs, standardised mean difference) for `pr_activity_6m` and `noncompany_governance`, plus propensity-score overlap (quantiles, min and max, share outside common support, share with score above 0.95) from a logit of ever-treated on `pr_activity_6m`. Rows are indexed by `section` (`covariate_balance` or `propensity_overlap`).
 - `output/balance_pscores.csv`: unit-level propensity scores (`repo`, `ever_treated`, `pscore`, `in_common_support`) for the common-support plot.
 
-## 5. Requirements
+## 4. Requirements
 
 - R 4.4.0 or later (`config.R` uses the base `%||%` operator, added in R 4.4.0). Tested with R 4.6.1.
 - R packages: `did` 2.5.1, `fixest` 0.14.2, `dplyr` 1.2.1, `readr` 2.2.0.
 - `renv.lock` pins R 4.6.1 and the full dependency set. To install the same versions, run `install.packages("renv")`, then `renv::restore()` from the package root.
 - Python 3.8 or later for `tools/anonymize.py` (standard library only).
 
-## 6. Options
+## 5. Options
 
 ### Environment variables
 
@@ -100,6 +88,6 @@ export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in rob
 OUTPUT_DIR=results/role_flows DID_OUTCOMES=role_flow_a0_r2 Rscript main_estimates.R
 ```
 
-## 7. Licence
+## 6. Licence
 
 The materials are licensed under CC-BY-4.0; see `LICENSE`.
