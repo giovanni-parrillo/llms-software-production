@@ -1,5 +1,5 @@
 # ==============================================================================
-# One-command replication of the thesis empirical design (Chapter 6)
+# One-command replication of the repository-level estimates
 # ==============================================================================
 # Usage:
 #   Rscript run_all.R

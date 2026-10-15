@@ -23,11 +23,11 @@ source(file.path(PROJECT_DIR, "role_flows.R"))
 # SAVE_OBJECTS=1 keeps the fitted did objects in output/objects (large).
 SAVE_OBJECTS <- identical(Sys.getenv("SAVE_OBJECTS", "0"), "1")
 
-# Multiplier-bootstrap settings for did::att_gt(); see README section 5.
+# Multiplier-bootstrap settings for did::att_gt()
 BITERS <- as.integer(Sys.getenv("DID_BITERS", "1000"))
 CORES  <- as.integer(Sys.getenv("DID_CORES", "1"))
 SEED   <- as.integer(Sys.getenv("DID_SEED", "42"))
-Z95    <- qnorm(.975)   # critical value for 95% confidence intervals
+Z95    <- qnorm(.975)
 
 # ------------------------------------------------------------------------------
 # 2. Outcome sets
@@ -269,11 +269,8 @@ simple_result <- function(object, specification, outcome, analysis) {
   )
 }
 
-# Fit every specification and outcome combination and collect
-# the summarized results into one table
+# Fit every specification and outcome combination; return one row per fit
 run_cs <- function(specs, ys, analysis, object_dir = NULL) {
-  # Optionally persist fitted model objects when the caller both wants saving and
-  # supplied a directory to save them to.
   save_objects <- SAVE_OBJECTS && !is.null(object_dir)
   if (save_objects) dir.create(object_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -290,8 +287,6 @@ run_cs <- function(specs, ys, analysis, object_dir = NULL) {
       est_method = spec$est_method %||% "dr"
     )
 
-    # Keep the full fitted did object on disk so it can be reloaded later
-    # without refitting.
     if (save_objects) {
       saveRDS(object, file.path(object_dir, paste0(s, "__", y, ".rds")))
     }

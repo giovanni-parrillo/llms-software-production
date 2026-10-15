@@ -37,9 +37,9 @@ def read(path):
         return list(csv.DictReader(f))
 
 
-def write(path, rows):
+def write(path, rows, fieldnames):
     with opener(path)(path, "wt", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0]), lineterminator="\n")
+        w = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
 
@@ -49,7 +49,7 @@ def load_mapping():
 
 
 def save_mapping(mapping):
-    write(MAP, [{"pseudonym": p, "login": login} for p, login in mapping.items()])
+    write(MAP, [{"pseudonym": p, "login": login} for p, login in mapping.items()], ["pseudonym", "login"])
 
 
 def pseudonym(key, login, mapping):
@@ -61,21 +61,21 @@ def pseudonym(key, login, mapping):
 
 
 def anonymize():
+    rows = read(DATA)
+    if all(r["login"].startswith("u_") for r in rows):
+        print(f"nothing to do: all logins in {DATA} are already pseudonymised")
+        return
     KEY.parent.mkdir(exist_ok=True)
     if not KEY.exists():
         KEY.write_text(secrets.token_hex(32))
     key = bytes.fromhex(KEY.read_text().strip())
     mapping = load_mapping()
-    rows = read(DATA)
-    changed = 0
     for r in rows:
-        if r["login"].startswith("u_"):
-            continue
-        r["login"] = pseudonym(key, r["login"], mapping)
-        changed += 1
+        if not r["login"].startswith("u_"):
+            r["login"] = pseudonym(key, r["login"], mapping)
     save_mapping(mapping)
-    write(DATA, rows)
-    print(f"pseudonymised {changed} logins in {DATA}; map: {MAP}")
+    write(DATA, rows, list(rows[0]))
+    print(f"pseudonymised logins in {DATA}; map: {MAP}")
 
 
 def restore():
@@ -83,7 +83,7 @@ def restore():
     rows = read(DATA)
     for r in rows:
         r["login"] = mapping.get(r["login"], r["login"])
-    write(DATA, rows)
+    write(DATA, rows, list(rows[0]))
     print(f"restored original logins in {DATA}")
 
 
@@ -97,7 +97,7 @@ def anonymize_file(path, columns):
             if login and not login.startswith("u_"):
                 r[c] = pseudonym(key, login, mapping)
     save_mapping(mapping)
-    write(path, rows)
+    write(path, rows, list(rows[0]))
     print(f"pseudonymised columns {columns} in {path}; map: {MAP}")
 
 

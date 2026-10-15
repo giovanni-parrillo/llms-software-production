@@ -1,4 +1,5 @@
 private/
+output/objects/
 .Rhistory
 .RData
 __pycache__/

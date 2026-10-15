@@ -1,13 +1,12 @@
 # ==============================================================================
-# Giovanni Parrillo - Thesis replication package
-# Robustness and falsification exercises
-# ==============================================================================
-# Three of the four robustness exercises of Section 6.3 of the thesis
-# (the fourth, the spillover analysis, is in spillover.R):
+# Robustness exercises
+#
 #   A. never-treated comparison group;
-#   B. owner-clean comparison pool (controls exposed through common ownership removed);
-#   C. three-month lead placebo restricted to genuinely pre-treatment data.
-
+#   B. owner-clean comparison pool: potential controls that share an owner with a
+#      treated repository are removed;
+#   C. three-month lead placebo, using only pre-treatment observations.
+# The spillover analysis is a fourth exercise, in spillover.R.
+# ==============================================================================
 
 source("config.R")
 d <- prepare_data()
@@ -16,12 +15,9 @@ if (!SAVE_OBJECTS) {
   unlink(file.path(OUT, "objects"), recursive = TRUE, force = TRUE)
 }
 
-# ------------------------------------------------------------------------------
-# A. Never-treated-only comparison group
-# ------------------------------------------------------------------------------
-# The main estimate uses not-yet-treated + never-treated controls.  This exercise
-# changes only the comparison set; the treatment definition, outcome variables,
-# covariate adjustment and aggregation remain the same.
+# --- A. never-treated comparison group ---------------------------------------
+# The main estimate compares with not-yet-treated and never-treated repositories.
+# This exercise keeps only the never-treated ones; everything else is unchanged.
 never_specs <- list(
   main_spec_never = list(
     data = d$p6,
@@ -37,19 +33,15 @@ r_never <- run_cs(
   object_dir = file.path(OUT, "objects", "never_treated")
 )
 
-# ------------------------------------------------------------------------------
-# B. Owner-clean controls
-# ------------------------------------------------------------------------------
-# A formally untreated repository is not an uncontaminated control if another
-# repository owned by the same observed GitHub owner is treated somewhere in
-# the analysis sample.  Treated repositories themselves are always retained;
-# only potential controls are removed.
+# --- B. owner-clean comparison pool -------------------------------------------
+# An untreated repository is contaminated if another repository of the same
+# observed owner is treated within the analysis sample. Treated repositories are
+# always kept; only potential controls are removed.
 owner_status <- d$full |>
   distinct(repo, owner, gname) |>
   mutate(
-    # Missing/blank owner strings do not constitute evidence of common
-    # ownership.  Give such repositories a repository-specific key so they are
-    # not spuriously treated as one giant shared-owner cluster.
+    # Blank owners are not evidence of common ownership. Give them a
+    # repository-specific key so they do not form one shared-owner cluster.
     owner_key = if_else(is.na(owner) | owner == "", paste0("__repo__", repo), owner)
   )
 
@@ -58,27 +50,26 @@ treated_owners <- owner_status |>
   distinct(owner_key) |>
   pull(owner_key)
 
-keep_repos <- owner_status |>
+owner_clean_repos <- owner_status |>
   filter(repo %in% d$p6$repo) |>
   filter(gname > 0 | !(owner_key %in% treated_owners)) |>
   pull(repo)
 
-spill <- d$p6 |>
-  filter(repo %in% keep_repos)
+owner_clean_panel <- d$p6 |>
+  filter(repo %in% owner_clean_repos)
 
-# These checks document the intended comparison-pool restriction for the
-# bundled canonical data.  They do not affect estimation.
+# Expected repository counts for the bundled sample. They do not affect estimation.
 if (!identical(Sys.getenv("STRICT_DATA_CHECKS", "1"), "0")) {
   stopifnot(
-    n_distinct(spill$repo[spill$gname > 0]) == 292L,
-    n_distinct(spill$repo[spill$gname == 0]) == 374L
+    n_distinct(owner_clean_panel$repo[owner_clean_panel$gname > 0]) == 292L,
+    n_distinct(owner_clean_panel$repo[owner_clean_panel$gname == 0]) == 374L
   )
 }
 
-r_spill <- run_cs(
+r_owner_clean <- run_cs(
   specs = list(
     main_spec_owner_clean = list(
-      data = spill,
+      data = owner_clean_panel,
       x = ~pr_activity_6m
     )
   ),
@@ -87,21 +78,17 @@ r_spill <- run_cs(
   object_dir = file.path(OUT, "objects", "owner_spillover")
 )
 
-# ------------------------------------------------------------------------------
-# C. Three-month lead placebo
-# ------------------------------------------------------------------------------
-# Each treated repository receives a fictitious adoption month three months
-# before its actual adoption.  Crucially, observations at/after the REAL
-# adoption date are removed before estimation, so the placebo post interval
-# contains no genuinely post-treatment observations.
+# --- C. three-month lead placebo ----------------------------------------------
+# Each treated repository gets a fictitious adoption month three months before
+# its actual one. Observations from the real adoption month onwards are removed
+# first, so the placebo post-period contains no real post-treatment data.
 units <- d$p6 |>
   distinct(repo, id, gname)
 
-eligible <- units |>
+placebo_eligible <- units |>
   filter(gname > 0) |>
   mutate(fake_g = gname - 3L) |>
   inner_join(d$p6 |> select(repo, period), by = "repo") |>
-  # Require at least three observed months before the fictitious treatment.
   filter(period < fake_g) |>
   summarise(
     n_pre = n_distinct(period),
@@ -110,17 +97,16 @@ eligible <- units |>
   filter(n_pre >= 3L)
 
 placebo <- d$p6 |>
-  filter(gname == 0 | repo %in% eligible$repo) |>
+  filter(gname == 0 | repo %in% placebo_eligible$repo) |>
   mutate(
     real_gname = gname,
     gname = if_else(real_gname == 0L, 0L, real_gname - 3L)
   ) |>
   filter(real_gname == 0L | period < real_gname)
 
-# The placebo deliberately uses no baseline-activity covariate: the fixed
-# Dec-2022--May-2023 activity window is not entirely pre-placebo for every fake
-# cohort, so conditioning on it would use information from the placebo "post"
-# period.  Both not-yet-treated and never-treated comparison versions are shown.
+# No baseline-activity covariate: the fixed Dec 2022 to May 2023 window is not
+# entirely before every fictitious adoption month, so adjusting for it would
+# use information from the placebo post-period. Both comparison groups are shown.
 placebo_specs <- list(
   placebo_notyet = list(
     data = placebo,
@@ -142,6 +128,6 @@ r_placebo <- run_cs(
 )
 
 write_csv(
-  bind_rows(r_never, r_spill, r_placebo),
+  bind_rows(r_never, r_owner_clean, r_placebo),
   file.path(OUT, "robustness.csv")
 )
