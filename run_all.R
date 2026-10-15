@@ -1,5 +1,5 @@
 # ==============================================================================
-# One-command Chapter 7 replication
+# One-command replication of the thesis empirical design (Chapter 6)
 # ==============================================================================
 # Usage:
 #   Rscript run_all.R

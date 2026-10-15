@@ -3,20 +3,10 @@
 # Main CS-DiD estimates and static TWFE comparison
 # ==============================================================================
 
-.this_file <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
-.script_dir <- if (!is.null(.this_file) && nzchar(.this_file)) {
-  dirname(normalizePath(.this_file))
-} else {
-  getwd()
-}
-source(file.path(.script_dir, "config.R"))
-rm(.this_file, .script_dir)
+source("config.R")
 
-
-# Construct the panel once using prepare_data()
 d <- prepare_data()
 specs <- specifications(d)
-
 
 # ------------------------------------------------------------------------------
 # 1. Callaway-Sant'Anna estimates
@@ -32,29 +22,25 @@ write_csv(main, file.path(OUT, "main_cs.csv"))
 # ------------------------------------------------------------------------------
 # 2. Conventional static two-way fixed effects
 # ------------------------------------------------------------------------------
-
-library(fixest)
-
 twfe_data <- d$p6 |>
-  mutate(post = as.integer(gname > 0 & period >= gname)) # Indicator for post-treatment
+  mutate(post = as.integer(gname > 0 & period >= gname))
 
 twfe <- lapply(retained_outcomes, function(y) {
   dat_y <- twfe_data |>
     filter(!is.na(.data[[y]]))
 
-  f <- as.formula(paste0(y, " ~ post | id + period")) # Construct regression formula 
   m <- feols(
-    f,
+    as.formula(paste0(y, " ~ post | id + period")),
     data = dat_y,
-    cluster = ~id, # Cluster standard errors at the repository level
+    cluster = ~id,
     warn = FALSE,
     notes = FALSE
   )
 
-  est <- unname(coef(m)["post"]) # Extract the estimate for the post-treatment indicator
-  std <- unname(se(m)["post"]) # Extract the standard error for the post-treatment indicator
+  est <- unname(coef(m)["post"])
+  std <- unname(se(m)["post"])
 
-  tibble( # Create a summary tibble for the results
+  tibble(
     analysis = "static TWFE",
     outcome = y,
     term = "post",

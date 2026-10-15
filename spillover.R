@@ -8,16 +8,13 @@
 # not-yet-exposed repos; observations are censored at own adoption.
 # ==============================================================================
 
-.args <- commandArgs(trailingOnly = FALSE)
-.f <- sub("^--file=", "", grep("^--file=", .args, value = TRUE))
-if (length(.f) == 1L) setwd(dirname(normalizePath(.f)))
 source("config.R")
 d <- prepare_data()
 
-NET_END        <- ym_period("2023-05")
-MIN_SHARED     <- 2L
-THRESHOLDS     <- c(0.2, 0.3)
-E_RANGE        <- c(-12, 12)
+NET_END    <- ym_period("2023-05")
+MIN_SHARED <- 2L
+THRESHOLDS <- c(0.2, 0.3)
+E_RANGE    <- c(-12, 12)
 
 repos <- d$full |>
   distinct(repo, owner, gname) |>
@@ -36,12 +33,11 @@ exposure_panel <- function(S) {
 fit_spill <- function(data, analysis, ys) {
   bind_rows(lapply(ys, function(y) {
     message(sprintf("Fitting %s - %s ...", analysis, y))
-    out <- tryCatch({
-      fit <- fit_cs(data, y, ~pr_activity_6m)
-      list(s = aggte(fit, type = "simple", na.rm = TRUE),
-           dyn = aggte(fit, type = "dynamic", min_e = E_RANGE[1], max_e = E_RANGE[2], na.rm = TRUE))
-    }, error = function(err) NULL)
-    if (is.null(out)) { message("  skipped (estimates not identified)"); return(NULL) }
+    fit <- fit_cs(data, y, ~pr_activity_6m)
+    out <- list(
+      s = aggte(fit, type = "simple", na.rm = TRUE),
+      dyn = aggte(fit, type = "dynamic", min_e = E_RANGE[1], max_e = E_RANGE[2], na.rm = TRUE)
+    )
     bind_rows(
       tibble(type = "simple", e = NA_real_, att = out$s$overall.att, se = out$s$overall.se),
       tibble(type = "dynamic", e = out$dyn$egt, att = out$dyn$att.egt, se = out$dyn$se.egt)
@@ -79,7 +75,7 @@ pairs <- inner_join(pre, pre, by = "login", relationship = "many-to-many") |>
   filter(owner.x != owner.y)
 pairs <- bind_rows(pairs, rename(pairs, repo.x = repo.y, repo.y = repo.x))  # symmetric
 
-stats <- list(); res <- list()
+net_stats <- list(); res <- list()
 for (k in THRESHOLDS) {
   S_net <- pairs |>
     filter(overlap > k) |>
@@ -88,7 +84,7 @@ for (k in THRESHOLDS) {
   S_all[S_net$repo.x] <- S_net$S
   panel <- exposure_panel(S_all)
   u <- distinct(panel, repo, gname, gname_own)
-  stats[[length(stats) + 1]] <- tibble(
+  net_stats[[length(net_stats) + 1]] <- tibble(
     tau = k,
     repos_sample = nrow(u),
     repos_with_sibling = sum(u$repo %in% S_net$repo.x),
@@ -101,5 +97,5 @@ for (k in THRESHOLDS) {
     reviewer_set_median = median(size$n))
   res[[length(res) + 1]] <- fit_spill(panel, paste0("cross-owner overlap>", k), retained_outcomes)
 }
-write_csv(bind_rows(stats), file.path(OUT, "spillover_network_stats.csv"))
+write_csv(bind_rows(net_stats), file.path(OUT, "spillover_network_stats.csv"))
 write_csv(bind_rows(res), file.path(OUT, "spillover_cross_owner.csv"))

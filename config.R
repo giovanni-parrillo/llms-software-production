@@ -6,31 +6,24 @@
 library(dplyr)
 library(readr)
 library(did)
-
+library(fixest)
 
 # ------------------------------------------------------------------------------
 # 1. Paths and run-time options
 # ------------------------------------------------------------------------------
 
-# Define path variables
-PROJECT_DIR  <- normalizePath(getwd())
+# Scripts are run from the package root (run_all.R changes to it).
+PROJECT_DIR <- normalizePath(getwd())
 DATA_DIR <- file.path(PROJECT_DIR, "data")
-source(file.path(PROJECT_DIR, "role_flows.R"))
-# OUTPUT_DIR overrides the results directory (e.g. for single-outcome runs that
-# must not overwrite the full-suite files in output/).
 OUT <- Sys.getenv("OUTPUT_DIR", file.path(PROJECT_DIR, "output"))
 dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 
-# Whether run_cs() persists fitted did objects to object_dir.  Set
-# SAVE_OBJECTS=0 to skip saving (and to clean up any stale objects left over
-# from a previous run that had it enabled).
+source(file.path(PROJECT_DIR, "role_flows.R"))
+
+# SAVE_OBJECTS=1 keeps the fitted did objects in output/objects (large).
 SAVE_OBJECTS <- identical(Sys.getenv("SAVE_OBJECTS", "0"), "1")
 
-
-# did::att_gt() uses a multiplier bootstrap when bstrap=TRUE.  biters is the
-# number of bootstrap iterations, cores is the number of parallel cores used
-# for the bootstrap, and seed is the RNG seed; all three can be overridden via
-# environment variables for robustness checks.
+# Multiplier-bootstrap settings for did::att_gt(); see README section 5.
 BITERS <- as.integer(Sys.getenv("DID_BITERS", "1000"))
 CORES  <- as.integer(Sys.getenv("DID_CORES", "1"))
 SEED   <- as.integer(Sys.getenv("DID_SEED", "42"))
@@ -95,8 +88,8 @@ ym_period <- function(x) {
   as.integer(substr(x, 1, 4)) * 12 + as.integer(substr(x, 6, 7))
 }
 
-# Construct a fixed-window pre-treatment activity covariate on log of mean PRs opened. A 
-# repository is retained only if every calendar month in the requested window is observed.
+# Fixed-window pre-treatment covariate: log(1 + mean PRs opened) over the window.
+# A repository is kept only if every calendar month in the window is observed.
 baseline_pr <- function(panel, start, end, name) {
   months <- ym_period(c(start, end))
   z <- panel |>
@@ -117,61 +110,61 @@ baseline_pr <- function(panel, start, end, name) {
 # 4. Canonical data construction
 # ------------------------------------------------------------------------------
 
+# The role-flow build takes minutes and is identical across steps, so it is
+# computed once per R session and reused by every call to prepare_data().
+# Scripts source this file again, so the cache must not be reset on re-sourcing.
+if (!exists(".role_flow_cache", envir = globalenv(), inherits = FALSE)) {
+  .role_flow_cache <- NULL
+}
+role_flows_cached <- function() {
+  if (is.null(.role_flow_cache)) {
+    .role_flow_cache <<- build_role_flows(
+      file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
+      Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv"))
+    )
+  }
+  .role_flow_cache
+}
+
 prepare_data <- function() {
   panel <- read_csv(file.path(DATA_DIR, "repo_month.csv"), show_col_types = FALSE)
   master <- read_csv(file.path(DATA_DIR, "repo_master.csv"), show_col_types = FALSE)
 
   # Treatment timing is the first validated AI-enablement month.  Never-treated
-  # repositories use gname=0, which is the convention expected by the did package.
+  # repositories use gname = 0, the convention expected by did.
   created <- ym_period(master$created_at)
   names(created) <- master$repo
 
   panel <- panel |>
     mutate(
-      period = ym_period(month), # assign  month index
-      id = as.integer(factor(repo)), # assign repo id
+      period = ym_period(month),
+      id = as.integer(factor(repo)),
       gname = if_else(is.na(first_ai_month), 0, ym_period(first_ai_month))
     ) |>
-
-    # GitHub records before repository creation are removed
     filter(is.na(created[repo]) | period >= created[repo]) |>
     mutate(
-      # Compute log of burden outcomes
       log_burden_mean_folder = log1p(tc_mean_coordination_burden_per_pr_folder),
       log_burden_mean_file = log1p(tc_mean_coordination_burden_per_pr_file)
     )
 
-  # Fixed common-baseline windows
   pr6 <- baseline_pr(panel, "2022-12", "2023-05", "pr_activity_6m")
   pr3 <- baseline_pr(panel, "2023-03", "2023-05", "pr_activity_3m")
 
-
-  # Non-company governance dummy
   owners <- master |>
     transmute(
       repo,
       owner = trimws(tolower(owner)),
       noncompany_governance = 1 - (tolower(owner_entity_type) == "company")
-      )
-
-
-  role_flows <- build_role_flows(
-    file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
-    Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv"))
-  )
+    )
 
   panel <- panel |>
-    select(-any_of("owner")) |> # remove owner column 
-    left_join(pr6, by = "repo") |> # add 6-month baseline covariate
-    left_join(pr3, by = "repo") |> # add 3-month baseline covariate
-    left_join(owners, by = "repo") |> # add non-company governance dummy
-    left_join(role_flows, by = c("repo", "month"))
+    select(-any_of("owner")) |>
+    left_join(pr6, by = "repo") |>
+    left_join(pr3, by = "repo") |>
+    left_join(owners, by = "repo") |>
+    left_join(role_flows_cached(), by = c("repo", "month"))
 
-
-  # The panel must contain at most one row per repository-month and treatment
-  # timing must be constant within repository.  These checks catch accidental
-  # joins/duplicates before they can contaminate a DiD estimate.
-
+  # Catch accidental joins or duplicates before they contaminate a DiD estimate.
   if (anyDuplicated(panel[c("repo", "period")])) {
     stop("repo_month.csv contains duplicate repository-month rows after preparation.")
   }
@@ -201,9 +194,7 @@ prepare_data <- function() {
 # 5. Specifications
 # ------------------------------------------------------------------------------
 
-specifications <- function(d) list( 
-
-  # The function returns the list of specifications for the main run
+specifications <- function(d) list(
 
   # 1. Unadjusted estimate on the full eligible outcome sample.
   full_sample = list(data = d$full),

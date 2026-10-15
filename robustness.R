@@ -2,28 +2,18 @@
 # Giovanni Parrillo - Thesis replication package
 # Robustness and falsification exercises
 # ==============================================================================
-# Three of the four robustness exercises of Section 7.3 of the design chapter
+# Three of the four robustness exercises of Section 6.3 of the thesis
 # (the fourth, the spillover analysis, is in spillover.R):
 #   A. never-treated comparison group;
 #   B. owner-clean comparison pool (controls exposed through common ownership removed);
 #   C. three-month lead placebo restricted to genuinely pre-treatment data.
 
 
-.this_file <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
-.script_dir <- if (!is.null(.this_file) && nzchar(.this_file)) {
-  dirname(normalizePath(.this_file))
-} else {
-  getwd()
-}
-source(file.path(.script_dir, "config.R"))
-rm(.this_file, .script_dir)
+source("config.R")
 d <- prepare_data()
 
 if (!SAVE_OBJECTS) {
-  unlink(file.path(OUT, "objects", "main"), recursive = TRUE, force = TRUE)
-  unlink(file.path(OUT, "objects", "never_treated"), recursive = TRUE, force = TRUE)
-  unlink(file.path(OUT, "objects", "owner_spillover"), recursive = TRUE, force = TRUE)
-  unlink(file.path(OUT, "objects", "placebo"), recursive = TRUE, force = TRUE)
+  unlink(file.path(OUT, "objects"), recursive = TRUE, force = TRUE)
 }
 
 # ------------------------------------------------------------------------------
@@ -144,8 +134,6 @@ placebo_specs <- list(
   )
 )
 
-# The placebo applies to the same retained outcomes rather than to an
-# undocumented hand-picked subset.
 r_placebo <- run_cs(
   specs = placebo_specs,
   ys = retained_outcomes,

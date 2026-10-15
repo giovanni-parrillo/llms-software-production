@@ -8,9 +8,9 @@
 # A month enters only with >= 10 interactions and some human activity in the prior 12 months.
 # Outputs role_flow_a<i>_r<j>; NA where undefined. See README for the sample implications.
 
-ROLE_LABELS <- c("core", "other", "bot")
+ROLE_FLOW_OUTCOMES <- sprintf("role_flow_a%d_r%d", rep(0:2, each = 3), rep(0:2, 3))
 
-build_role_flows <- function(edges_path, types_path) {
+build_role_flows <- function(edges_path, types_path, min_interactions = 10, lookback = 12) {
   types <- read_csv(types_path, col_types = cols(.default = "c"), show_col_types = FALSE)
   types <- types[!duplicated(types$login), ]
   bots <- types$login[types$actor_type %in% c("generic_bot", "llm_bot")]
@@ -18,7 +18,6 @@ build_role_flows <- function(edges_path, types_path) {
   e <- read_csv(edges_path, col_types = cols(.default = "c", n = "d"), show_col_types = FALSE)
   e$t <- as.integer(substr(e$month, 1, 4)) * 12L + as.integer(substr(e$month, 6, 7))
   e$w <- e$n
-  MIN_W <- 10; LOOK <- 12
 
   out <- vector("list", length(unique(e$repo)))
   for (k in seq_along(unique(e$repo))) {
@@ -37,8 +36,8 @@ build_role_flows <- function(edges_path, types_path) {
     for (m in sort(unique(g$t))) {
       sel <- g$t == m
       Wm <- sum(g$w[sel])
-      if (Wm < MIN_W) next
-      lo <- max(m - LOOK, t0); hi <- m - 1
+      if (Wm < min_interactions) next
+      lo <- max(m - lookback, t0); hi <- m - 1
       if (hi < t0) next
       past <- cs[, hi - t0 + 1] - if (lo - 1 >= t0) cs[, lo - t0] else 0
       if (sum(past) <= 0) next
@@ -51,7 +50,7 @@ build_role_flows <- function(edges_path, types_path) {
       cell <- tapply(g$w[sel], factor(ra * 3 + rr, levels = 0:8), sum)
       cell[is.na(cell)] <- 0
       f <- as.numeric(cell) / Wm
-      names(f) <- sprintf("role_flow_a%d_r%d", rep(0:2, each = 3), rep(0:2, 3))
+      names(f) <- ROLE_FLOW_OUTCOMES
       rows[[length(rows) + 1]] <- c(repo = repo, month = sprintf("%04d-%02d", (m - 1) %/% 12, (m - 1) %% 12 + 1), f)
     }
     out[[k]] <- if (length(rows)) bind_rows(lapply(rows, function(x) as.data.frame(as.list(x), stringsAsFactors = FALSE))) else NULL
@@ -60,5 +59,3 @@ build_role_flows <- function(edges_path, types_path) {
   res[, 3:11] <- lapply(res[, 3:11], as.numeric)
   res
 }
-
-ROLE_FLOW_OUTCOMES <- sprintf("role_flow_a%d_r%d", rep(0:2, each = 3), rep(0:2, 3))
