@@ -34,32 +34,14 @@ Each script can also be run on its own with `Rscript <script>.R` from the packag
 
 Column definitions for every file are in `DATA_DICTIONARY.md`. Repository owners are organisation names and are not pseudonymised. Repository names are public GitHub identifiers and are left as they are. Only GitHub user logins are pseudonymised.
 
-### Anonymisation
-
-GitHub logins are replaced by `u_` followed by the first 12 hexadecimal characters of `HMAC-SHA256(secret key, login)`.
-
-```bash
-python tools/anonymize.py anonymize                                  # logins in data/actor_repo.csv -> pseudonyms
-python tools/anonymize.py restore                                    # pseudonyms -> logins in data/actor_repo.csv (needs private/)
-python tools/anonymize.py anonymize-file data/login_types.csv login  # any plain or gzip CSV with login columns
-```
-
-`anonymize` acts only on raw logins. On the shipped data every login is already pseudonymised, so the command reports that there is nothing to do and creates nothing. The key and map in `private/` exist only for the original data. `restore` and `anonymize-file` need them. `private/` is gitignored and must not be shared with the data. Re-running any command is safe: values that already start with `u_` are left unchanged.
-
-## 3. Design notes
-
-- `fit_cs()` accepts `est_method` (`"dr"` by default, or `"ipw"`). All reported specifications use the doubly robust estimator, which already incorporates propensity-score weighting.
-- `output/balance.csv`: on the 6-month-baseline sample, ever-treated versus never-treated balance (means, SDs, standardised mean difference) for `pr_activity_6m` and `noncompany_governance`, plus propensity-score overlap (quantiles, min and max, share outside common support, share with score above 0.95) from a logit of ever-treated on `pr_activity_6m`. Rows are indexed by `section` (`covariate_balance` or `propensity_overlap`).
-- `output/balance_pscores.csv`: unit-level propensity scores (`repo`, `ever_treated`, `pscore`, `in_common_support`) for the common-support plot.
-
-## 4. Requirements
+## 3. Requirements
 
 - R 4.4.0 or later (`config.R` uses the base `%||%` operator, added in R 4.4.0). Tested with R 4.6.1.
 - R packages: `did` 2.5.1, `fixest` 0.14.2, `dplyr` 1.2.1, `readr` 2.2.0.
 - `renv.lock` pins R 4.6.1 and the full dependency set. To install the same versions, run `install.packages("renv")`, then `renv::restore()` from the package root.
 - Python 3.8 or later for `tools/anonymize.py` (standard library only).
 
-## 5. Options
+## 4. Options
 
 ### Environment variables
 
