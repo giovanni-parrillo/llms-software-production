@@ -40,7 +40,7 @@ retained_outcomes <- c(
 
   # H2: human validation and integrative capacity
   "opened_prs_per_active_reviewer_excl_bots",
-  "open_prs_per_active_reviewer_excl_bots",
+  "log_human_reviews_per_reviewer",
   "reviews_by_human_reviewer",
   "merged_prs",
   "median_time_to_merge_days",
@@ -144,7 +144,14 @@ prepare_data <- function() {
     filter(is.na(created[repo]) | period >= created[repo]) |>
     mutate(
       log_burden_mean_folder = log1p(tc_mean_coordination_burden_per_pr_folder),
-      log_burden_mean_file = log1p(tc_mean_coordination_burden_per_pr_file)
+      log_burden_mean_file = log1p(tc_mean_coordination_burden_per_pr_file),
+      # Human review submissions per active non-bot reviewer; undefined (NA) in
+      # months with no active reviewer.
+      log_human_reviews_per_reviewer = log1p(if_else(
+        unique_reviewers_excl_bots > 0,
+        reviews_by_human_reviewer / unique_reviewers_excl_bots,
+        NA_real_
+      ))
     )
 
   pr6 <- baseline_pr(panel, "2022-12", "2023-05", "pr_activity_6m")

@@ -19,6 +19,8 @@ One row per repository and calendar month.
 | `opened_prs` | integer | Pull requests opened in the month. Source of the baseline covariate. |
 | `tc_mean_coordination_burden_per_pr_file` | number | Mean coordination burden per pull request, file-based unit. Log-transformed as `log_burden_mean_file`. |
 | `tc_mean_coordination_burden_per_pr_folder` | number | As above, folder-based unit. Log-transformed as `log_burden_mean_folder`. |
+| `reviews_by_human_reviewer` | integer | Review submissions by human reviewers in the month. |
+| `unique_reviewers_excl_bots` | integer | Distinct non-bot reviewers active in the month. Together with `reviews_by_human_reviewer` it defines `log_human_reviews_per_reviewer` = log(1 + reviews by human reviewers / unique non-bot reviewers), set to missing when there is no active reviewer. |
 | outcome columns | number | The other outcomes listed in `retained_outcomes` in `config.R`, except the role-flow outcomes. Their definitions are in the thesis. |
 
 ## `data/repo_master.csv`: repository attributes
