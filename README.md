@@ -5,14 +5,6 @@ thesis. The repository contains the analytical datasets, R scripts and estimatio
 Callaway–Sant'Anna difference-in-differences analysis, the two-way fixed-effects comparison, balance
 diagnostics, robustness checks and the spillover analysis.
 
-## Scope: computational replication
-
-The package re-estimates the results from the supplied analytical datasets. It does not include the
-upstream GitHub collection, the derivation of the treatment date, or the owner and actor
-classification, which are documented in the thesis. It also does not generate the thesis's tables
-and figures: the outputs are CSV files. Reproducing the estimates is therefore computational
-replication. Rebuilding the datasets from the original sources is a separate step, not included here.
-
 ## 1. Running the analysis
 
 From the package root:
