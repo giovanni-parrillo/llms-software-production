@@ -1,6 +1,6 @@
 # Data dictionary
 
-This file documents the columns that the package's code reads. Other columns in the shipped files
+This file documents the columns that the package's code reads. Other columns in the presented files
 are not used by any script and are not described here. Variable definitions (treatment, outcomes,
 actor classification) are documented in the thesis.
 
