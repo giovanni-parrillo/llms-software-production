@@ -29,6 +29,11 @@ CORES  <- as.integer(Sys.getenv("DID_CORES", "1"))
 SEED   <- as.integer(Sys.getenv("DID_SEED", "42"))
 Z95    <- qnorm(.975)
 
+# Core definition for the role-flow outcomes: reviewers covering CORE_COVERAGE of human
+# review interactions in the 12 months before CORE_FREEZE (earlier adopters: their treatment month)
+CORE_COVERAGE <- as.numeric(Sys.getenv("CORE_COVERAGE", "0.75"))
+CORE_FREEZE   <- Sys.getenv("CORE_FREEZE", "2025-01")
+
 # ------------------------------------------------------------------------------
 # 2. Outcome sets
 # ------------------------------------------------------------------------------
@@ -110,17 +115,22 @@ baseline_pr <- function(panel, start, end, name) {
 # 4. Canonical data construction
 # ------------------------------------------------------------------------------
 
-# The role-flow build takes minutes and is identical across steps, so it is
-# computed once per R session and reused by every call to prepare_data().
+# The role-flow build is identical across steps, so it is computed once per R
+# session and reused by every call to prepare_data().
 # Scripts source this file again, so the cache must not be reset on re-sourcing.
 if (!exists(".role_flow_cache", envir = globalenv(), inherits = FALSE)) {
   .role_flow_cache <- NULL
 }
 role_flows_cached <- function() {
   if (is.null(.role_flow_cache)) {
+    master <- read_csv(file.path(DATA_DIR, "repo_master.csv"), show_col_types = FALSE)
+    freeze <- pmin(ym_period(CORE_FREEZE), ym_period(master$first_ai_month), na.rm = TRUE)
+    names(freeze) <- master$repo
     .role_flow_cache <<- build_role_flows(
       file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
-      Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv"))
+      Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv")),
+      freeze = freeze,
+      coverage = CORE_COVERAGE
     )
   }
   .role_flow_cache

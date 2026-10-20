@@ -78,6 +78,8 @@ export DID_SEED=42
 export DID_OUTCOMES=...     # comma-separated subset of outcomes (default: all retained outcomes)
 export OUTPUT_DIR=...       # results directory (default: output/)
 export ROLE_TYPES=...       # login-type table for the role-flow outcomes (default: data/login_types.csv)
+export CORE_COVERAGE=0.75   # share of human review interactions covered by the core (role-flow outcomes)
+export CORE_FREEZE=2025-01  # end of the core window; earlier adopters use their treatment month
 export SAVE_OBJECTS=0       # 1 saves the fitted did objects to output/objects (large; off by default)
 export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in robustness.R
 ```
@@ -86,6 +88,14 @@ export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in rob
 
 ```bash
 OUTPUT_DIR=results/role_flows DID_OUTCOMES=role_flow_a0_r2 Rscript main_estimates.R
+```
+
+The core is fixed per repository, so role-flow results depend on `CORE_COVERAGE` and `CORE_FREEZE`. To run the coverage sensitivity:
+
+```bash
+for c in 0.3 0.5 0.75; do
+  CORE_COVERAGE=$c OUTPUT_DIR=results/core_$c DID_OUTCOMES=$(Rscript -e 'source("config.R"); cat(ROLE_FLOW_OUTCOMES, sep = ",")') Rscript main_estimates.R
+done
 ```
 
 ## 6. Licence
