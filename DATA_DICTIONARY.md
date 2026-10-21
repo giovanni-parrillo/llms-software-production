@@ -57,6 +57,8 @@ One row per login and repository.
 | `login` | pseudonym | GitHub login, pseudonymised. One row per login. |
 | `actor_type` | text | `human`, `unknown`, `generic_bot` or `llm_bot`. Bots (generic and LLM) are pooled for the role-flow outcomes. |
 
+The table covers every login in `author_reviewer_edges.csv.gz` and `author_reviewer_edges_by_status.csv.gz`.
+
 ## `data/author_reviewer_edges.csv.gz`: author-reviewer interactions
 
 Gzip-compressed CSV, one row per repository, merged month and author-reviewer pair.
@@ -69,6 +71,19 @@ Gzip-compressed CSV, one row per repository, merged month and author-reviewer pa
 | `reviewer` | pseudonym | Reviewer, pseudonymised. Formal reviews and inline review comments; self-interactions excluded. |
 | `n` | integer | Number of interactions for the triple. |
 
+## `data/author_reviewer_edges_by_status.csv.gz`: interactions by merge status
+
+Gzip-compressed CSV, one row per repository, review month, author-reviewer pair and merge status.
+
+| Column | Type | Description |
+|---|---|---|
+| `repo` | text | Repository. |
+| `month` | `YYYY-MM` | Month of the formal review or inline review comment. |
+| `author` | pseudonym | Pull-request author, pseudonymised. |
+| `reviewer` | pseudonym | Reviewer, pseudonymised. Formal reviews and inline review comments; self-interactions excluded. |
+| `merged` | 0/1 | 1 if the pull request was merged, 0 otherwise. |
+| `n` | integer | Number of interactions for the row. |
+
 ## Output files (`output/`)
 
 | File | Contents |
@@ -79,3 +94,5 @@ Gzip-compressed CSV, one row per repository, merged month and author-reviewer pa
 | `spillover_within_owner.csv`, `spillover_cross_owner.csv` | Spillover aggregate and event-time estimates. |
 | `spillover_network_stats.csv` | Size of the cross-owner exposure network for each overlap threshold. |
 | `balance.csv`, `balance_pscores.csv` | Pre-treatment balance, overlap diagnostics and unit-level propensity scores. |
+| `role_flows_by_status.csv` | Role-flow ATTs for merged and unmerged pull requests (`pr_status`), main and unadjusted specifications. |
+| `dynamic_cs.csv` | Event-time aggregate ATT (`e` = -6 to 6) per outcome, main specification, with standard error and uniform critical value (`crit_val`). |
