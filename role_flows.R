@@ -5,18 +5,20 @@
 # Roles: core (0) = human reviewers covering `coverage` of human review interactions in the
 # `lookback` months before the repository's freeze month, held fixed for every month;
 # other human (1) = every other human login (unknown counts as human); bot (2) = generic and LLM bots.
-# Interactions: formal reviews and inline review comments on merged PRs, self-interactions excluded.
+# Interactions: formal reviews and inline review comments, self-interactions excluded; `merged` (0/1)
+# keeps one PR merge status when the edge file has that column.
 # A month enters with >= min_interactions interactions; repositories without human review
 # activity in the freeze window have no core and are dropped.
 # Outputs role_flow_a<i>_r<j>.
 
 ROLE_FLOW_OUTCOMES <- sprintf("role_flow_a%d_r%d", rep(0:2, each = 3), rep(0:2, 3))
 
-build_role_flows <- function(edges_path, types_path, freeze, coverage, min_interactions = 10, lookback = 12) {
+build_role_flows <- function(edges_path, types_path, freeze, coverage, min_interactions = 10, lookback = 12, merged = NULL) {
   types <- read_csv(types_path, col_types = cols(.default = "c"), show_col_types = FALSE)
   bots <- types$login[types$actor_type %in% c("generic_bot", "llm_bot")]
 
   e <- read_csv(edges_path, col_types = cols(.default = "c", n = "d"), show_col_types = FALSE)
+  if (!is.null(merged)) e <- e[e$merged == as.character(merged), ]
   e$t <- as.integer(substr(e$month, 1, 4)) * 12L + as.integer(substr(e$month, 6, 7))
 
   out <- lapply(split(e, e$repo), function(g) {

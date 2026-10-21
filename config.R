@@ -121,22 +121,25 @@ baseline_pr <- function(panel, start, end, name) {
 if (!exists(".role_flow_cache", envir = globalenv(), inherits = FALSE)) {
   .role_flow_cache <- NULL
 }
+core_freeze <- function() {
+  master <- read_csv(file.path(DATA_DIR, "repo_master.csv"), show_col_types = FALSE)
+  freeze <- pmin(ym_period(CORE_FREEZE), ym_period(master$first_ai_month), na.rm = TRUE)
+  names(freeze) <- master$repo
+  freeze
+}
 role_flows_cached <- function() {
   if (is.null(.role_flow_cache)) {
-    master <- read_csv(file.path(DATA_DIR, "repo_master.csv"), show_col_types = FALSE)
-    freeze <- pmin(ym_period(CORE_FREEZE), ym_period(master$first_ai_month), na.rm = TRUE)
-    names(freeze) <- master$repo
     .role_flow_cache <<- build_role_flows(
       file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
       Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv")),
-      freeze = freeze,
+      freeze = core_freeze(),
       coverage = CORE_COVERAGE
     )
   }
   .role_flow_cache
 }
 
-prepare_data <- function() {
+prepare_data <- function(role_flows = role_flows_cached()) {
   panel <- read_csv(file.path(DATA_DIR, "repo_month.csv"), show_col_types = FALSE)
   master <- read_csv(file.path(DATA_DIR, "repo_master.csv"), show_col_types = FALSE)
 
@@ -179,7 +182,7 @@ prepare_data <- function() {
     left_join(pr6, by = "repo") |>
     left_join(pr3, by = "repo") |>
     left_join(owners, by = "repo") |>
-    left_join(role_flows_cached(), by = c("repo", "month"))
+    left_join(role_flows, by = c("repo", "month"))
 
   # Catch accidental joins or duplicates before they contaminate a DiD estimate.
   if (anyDuplicated(panel[c("repo", "period")])) {
