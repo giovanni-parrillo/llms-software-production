@@ -6,14 +6,6 @@ Callaway–Sant'Anna difference-in-differences analysis, the two-way fixed-effec
 diagnostics, robustness checks, the spillover analysis, review-role flows by pull-request merge status
 and event-time estimates.
 
-## Scope: computational replication
-
-The package re-estimates the results from the supplied analytical datasets. It does not include the
-upstream GitHub collection, the derivation of the treatment date, or the owner and actor
-classification, which are documented in the thesis. It also does not generate the thesis's tables
-and figures: the outputs are CSV files. Reproducing the estimates is therefore computational
-replication. Rebuilding the datasets from the original sources is a separate step, not included here.
-
 ## 1. Running the analysis
 
 From the package root:
@@ -29,7 +21,7 @@ Rscript run_all.R
 3. `scripts/robustness.R`: never-treated, owner-clean and placebo exercises (`robustness.csv`).
 4. `scripts/spillover.R`: within-owner and cross-owner spillover analysis (`spillover_*.csv`).
 5. `scripts/merge_status.R`: role-flow estimates on interactions with merged and unmerged pull requests (`role_flows_by_status.csv`).
-6. `scripts/event_study.R`: event-time estimates for the main specification (`dynamic_cs.csv`).
+6. `scripts/event_study.R`: event-time estimates for the main specification (`dynamic_cs.csv`). All CS estimates use `base_period = "varying"`, so the pre-treatment estimates are one-period changes and the estimate at e = -1 is not normalised to zero.
 
 Each script can also be run on its own with `Rscript scripts/<script>.R` from the package root. Generated files go to `output/`, which is created on the first run.
 
@@ -46,34 +38,14 @@ Each script can also be run on its own with `Rscript scripts/<script>.R` from th
 
 Column definitions for every file are in `DATA_DICTIONARY.md`. Repository owners are organisation names and are not pseudonymised. Repository names are public GitHub identifiers and are left as they are. Only GitHub user logins are pseudonymised.
 
-### Anonymisation
-
-GitHub logins are replaced by `u_` followed by the first 12 hexadecimal characters of `HMAC-SHA256(secret key, login)`.
-
-```bash
-python tools/anonymize.py anonymize                                  # logins in data/actor_repo.csv -> pseudonyms
-python tools/anonymize.py restore                                    # pseudonyms -> logins in data/actor_repo.csv (needs private/)
-python tools/anonymize.py anonymize-file data/login_types.csv login  # any plain or gzip CSV with login columns
-```
-
-`anonymize` acts only on raw logins. On the shipped data every login is already pseudonymised, so the command reports that there is nothing to do and creates nothing. The key and map in `private/` exist only for the original data. `restore` and `anonymize-file` need them. `private/` is gitignored and must not be shared with the data. Re-running any command is safe: values that already start with `u_` are left unchanged.
-
-## 3. Design notes
-
-- `fit_cs()` accepts `est_method` (`"dr"` by default, or `"ipw"`). All reported specifications use the doubly robust estimator, which already incorporates propensity-score weighting.
-- All CS estimates use `base_period = "varying"`: pre-treatment estimates in `output/dynamic_cs.csv` are one-period changes, so the estimate at e = -1 is not normalised to zero.
-- Role-flow outcomes (`role_flow_a<i>_r<j>`) are the share of a repository-month's review interactions from author role i to reviewer role j (0 core, 1 other human, 2 bot). The core is the smallest set of human reviewers covering `CORE_COVERAGE` of human review interactions in the 12 months before `CORE_FREEZE`, held fixed for every month. A month enters with at least ten interactions, and repositories with no human review activity in the freeze window have no core and drop out, so role-flow results use fewer repositories than the other outcomes. `author_reviewer_edges.csv.gz` dates interactions by merge month and covers merged pull requests; `scripts/merge_status.R` uses `author_reviewer_edges_by_status.csv.gz`, dated by review month, and defines the core within each merge status.
-- `output/balance.csv`: on the 6-month-baseline sample, ever-treated versus never-treated balance (means, SDs, standardised mean difference) for `pr_activity_6m` and `noncompany_governance`, plus propensity-score overlap (quantiles, min and max, share outside common support, share with score above 0.95) from a logit of ever-treated on `pr_activity_6m`. Rows are indexed by `section` (`covariate_balance` or `propensity_overlap`).
-- `output/balance_pscores.csv`: unit-level propensity scores (`repo`, `ever_treated`, `pscore`, `in_common_support`) for the common-support plot.
-
-## 4. Requirements
+## 3. Requirements
 
 - R 4.4.0 or later (`config.R` uses the base `%||%` operator, added in R 4.4.0). Tested with R 4.6.1.
 - R packages: `did` 2.5.1, `fixest` 0.14.2, `dplyr` 1.2.1, `readr` 2.2.0.
 - `renv.lock` pins R 4.6.1 and the full dependency set. To install the same versions, run `install.packages("renv")`, then `renv::restore()` from the package root.
 - Python 3.8 or later for `tools/anonymize.py` (standard library only).
 
-## 5. Options
+## 4. Options
 
 ### Environment variables
 
@@ -96,7 +68,7 @@ export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in scr
 OUTPUT_DIR=results/role_flows DID_OUTCOMES=role_flow_a0_r2 Rscript scripts/main_estimates.R
 ```
 
-The core is fixed per repository, so role-flow results depend on `CORE_COVERAGE` and `CORE_FREEZE`. To run the coverage sensitivity:
+Role-flow outcomes (`role_flow_a<i>_r<j>`) are the share of a repository-month's review interactions from author role i to reviewer role j (0 core, 1 other human, 2 bot). The core is the smallest set of human reviewers covering `CORE_COVERAGE` of the repository's human review interactions in the 12 months before `CORE_FREEZE`, held fixed for every month, so role-flow results depend on both settings. A month enters with at least ten interactions, and repositories with no human review activity in the window have no core and drop out. To run the coverage sensitivity:
 
 ```bash
 for c in 0.3 0.5 0.75; do
@@ -104,6 +76,6 @@ for c in 0.3 0.5 0.75; do
 done
 ```
 
-## 6. Licence
+## 5. Licence
 
 The materials are licensed under CC-BY-4.0; see `LICENSE`.
