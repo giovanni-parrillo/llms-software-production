@@ -29,7 +29,7 @@ Z95    <- qnorm(.975)
 
 # Core definition for the role-flow outcomes: reviewers covering CORE_COVERAGE of human
 # review interactions in the 12 months before CORE_FREEZE (earlier adopters: their treatment month)
-CORE_COVERAGE <- as.numeric(Sys.getenv("CORE_COVERAGE", "0.75"))
+CORE_COVERAGE <- 0.75
 CORE_FREEZE   <- Sys.getenv("CORE_FREEZE", "2025-01")
 
 # ------------------------------------------------------------------------------
@@ -171,15 +171,16 @@ core_freeze <- function() {
   names(freeze) <- master$repo
   freeze
 }
+role_flows_at <- function(coverage) {
+  build_role_flows(
+    file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
+    Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv")),
+    freeze = core_freeze(),
+    coverage = coverage
+  )
+}
 role_flows_cached <- function() {
-  if (is.null(.role_flow_cache)) {
-    .role_flow_cache <<- build_role_flows(
-      file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
-      Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv")),
-      freeze = core_freeze(),
-      coverage = CORE_COVERAGE
-    )
-  }
+  if (is.null(.role_flow_cache)) .role_flow_cache <<- role_flows_at(CORE_COVERAGE)
   .role_flow_cache
 }
 

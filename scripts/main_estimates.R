@@ -17,6 +17,16 @@ main <- run_cs(
   analysis = "main CS-DiD",
   object_dir = file.path(OUT, "objects", "main")
 )
+
+# Role-flow outcomes with the core covering 30% and 50% instead of 75% (main specification)
+sensitivity <- bind_rows(lapply(c(0.3, 0.5), function(coverage) {
+  run_cs(
+    specs = specifications(prepare_data(role_flows_at(coverage)))["main_spec"],
+    ys = intersect(ROLE_FLOW_OUTCOMES, retained_outcomes),
+    analysis = sprintf("core coverage %d%%", round(100 * coverage))
+  )
+}))
+main <- bind_rows(main, sensitivity)
 write_csv(main, file.path(OUT, "main_cs.csv"))
 
 # ------------------------------------------------------------------------------

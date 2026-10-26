@@ -88,7 +88,7 @@ Gzip-compressed CSV, one row per repository, review month, author-reviewer pair 
 
 | File | Contents |
 |---|---|
-| `main_cs.csv` | Callaway–Sant'Anna aggregate ATT, standard error and 95% interval, per specification and outcome. |
+| `main_cs.csv` | Callaway–Sant'Anna aggregate ATT, standard error and 95% interval, per specification and outcome. Rows with `analysis` = `core coverage 30%` or `core coverage 50%` hold the role-flow outcomes, main specification, when the core covers 30% or 50% of human review interactions instead of 75%. |
 | `twfe_static.csv` | Static two-way fixed-effects estimate per outcome, with repository-clustered standard errors. |
 | `robustness.csv` | Never-treated, owner-clean and placebo estimates, per outcome. |
 | `spillover_within_owner.csv`, `spillover_cross_owner.csv` | Spillover aggregate and event-time estimates. |

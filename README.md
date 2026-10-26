@@ -56,7 +56,6 @@ export DID_SEED=42
 export DID_OUTCOMES=...     # comma-separated subset of outcomes (default: all retained outcomes)
 export OUTPUT_DIR=...       # results directory (default: output/)
 export ROLE_TYPES=...       # login-type table for the role-flow outcomes (default: data/login_types.csv)
-export CORE_COVERAGE=0.75   # share of human review interactions covered by the core (role-flow outcomes)
 export CORE_FREEZE=2025-01  # end of the core window; earlier adopters use their treatment month
 export SAVE_OBJECTS=0       # 1 saves the fitted did objects to output/objects (large; off by default)
 export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in scripts/robustness.R
@@ -68,13 +67,7 @@ export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in scr
 OUTPUT_DIR=results/role_flows DID_OUTCOMES=role_flow_a0_r2 Rscript scripts/main_estimates.R
 ```
 
-Role-flow outcomes (`role_flow_a<i>_r<j>`) are the share of a repository-month's review interactions from author role i to reviewer role j (0 core, 1 other human, 2 bot). The core is the smallest set of human reviewers covering `CORE_COVERAGE` of the repository's human review interactions in the 12 months before `CORE_FREEZE`, held fixed for every month, so role-flow results depend on both settings. A month enters with at least ten interactions, and repositories with no human review activity in the window have no core and drop out. To run the coverage sensitivity:
-
-```bash
-for c in 0.3 0.5 0.75; do
-  CORE_COVERAGE=$c OUTPUT_DIR=results/core_$c DID_OUTCOMES=$(Rscript -e 'source("config.R"); cat(ROLE_FLOW_OUTCOMES, sep = ",")') Rscript scripts/main_estimates.R
-done
-```
+Role-flow outcomes (`role_flow_a<i>_r<j>`) are the share of a repository-month's review interactions from author role i to reviewer role j (0 core, 1 other human, 2 bot). The core is the smallest set of human reviewers covering 75% of the repository's human review interactions in the 12 months before `CORE_FREEZE`, held fixed for every month. A month enters with at least ten interactions, and repositories with no human review activity in the window have no core and drop out. `main_cs.csv` also reports the role-flow outcomes, main specification, with the core covering 30% and 50% (`analysis` = `core coverage 30%` and `core coverage 50%`).
 
 ## 5. Licence
 
