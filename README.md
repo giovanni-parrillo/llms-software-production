@@ -24,14 +24,14 @@ Rscript run_all.R
 
 `run_all.R` changes to the package root and runs, in one R session:
 
-1. `main_estimates.R`: CS-DiD estimates for all specifications (`main_cs.csv`) and static TWFE (`twfe_static.csv`).
-2. `balance.R`: pre-treatment balance and overlap diagnostics (`balance.csv`, `balance_pscores.csv`).
-3. `robustness.R`: never-treated, owner-clean and placebo exercises (`robustness.csv`).
-4. `spillover.R`: within-owner and cross-owner spillover analysis (`spillover_*.csv`).
-5. `merge_status.R`: role-flow estimates on interactions with merged and unmerged pull requests (`role_flows_by_status.csv`).
-6. `pretrends.R`: event-time estimates for the main specification (`dynamic_cs.csv`).
+1. `scripts/main_estimates.R`: CS-DiD estimates for all specifications (`main_cs.csv`) and static TWFE (`twfe_static.csv`).
+2. `scripts/balance.R`: pre-treatment balance and overlap diagnostics (`balance.csv`, `balance_pscores.csv`).
+3. `scripts/robustness.R`: never-treated, owner-clean and placebo exercises (`robustness.csv`).
+4. `scripts/spillover.R`: within-owner and cross-owner spillover analysis (`spillover_*.csv`).
+5. `scripts/merge_status.R`: role-flow estimates on interactions with merged and unmerged pull requests (`role_flows_by_status.csv`).
+6. `scripts/event_study.R`: event-time estimates for the main specification (`dynamic_cs.csv`).
 
-Each script can also be run on its own with `Rscript <script>.R` from the package root. Generated files go to `output/`, which is created on the first run.
+Each script can also be run on its own with `Rscript scripts/<script>.R` from the package root. Generated files go to `output/`, which is created on the first run.
 
 ## 2. Data and anonymisation
 
@@ -41,7 +41,7 @@ Each script can also be run on its own with `Rscript <script>.R` from the packag
 - `data/repo_master.csv`: repository attributes (owner, creation date, governance).
 - `data/actor_repo.csv`: login-repository table with first review and approval dates, used for the cross-owner network. Logins are pseudonymised.
 - `data/author_reviewer_edges.csv.gz`: author-reviewer interaction counts by repository and merged month (formal reviews and inline review comments, self-interactions excluded). Logins are pseudonymised. Gzip-compressed CSV, read directly by `readr`.
-- `data/author_reviewer_edges_by_status.csv.gz`: author-reviewer interaction counts by repository, review month and pull-request merge status (formal reviews and inline review comments, self-interactions excluded), used by `merge_status.R`. Logins are pseudonymised.
+- `data/author_reviewer_edges_by_status.csv.gz`: author-reviewer interaction counts by repository, review month and pull-request merge status (formal reviews and inline review comments, self-interactions excluded), used by `scripts/merge_status.R`. Logins are pseudonymised.
 - `data/login_types.csv`: pseudonymised login and actor type (`human`, `unknown`, `generic_bot`, `llm_bot`), from the same classification as the scraper's `actor_type_lookup`. It covers every login in both edge files.
 
 Column definitions for every file are in `DATA_DICTIONARY.md`. Repository owners are organisation names and are not pseudonymised. Repository names are public GitHub identifiers and are left as they are. Only GitHub user logins are pseudonymised.
@@ -62,7 +62,7 @@ python tools/anonymize.py anonymize-file data/login_types.csv login  # any plain
 
 - `fit_cs()` accepts `est_method` (`"dr"` by default, or `"ipw"`). All reported specifications use the doubly robust estimator, which already incorporates propensity-score weighting.
 - All CS estimates use `base_period = "varying"`: pre-treatment estimates in `output/dynamic_cs.csv` are one-period changes, so the estimate at e = -1 is not normalised to zero.
-- Role-flow outcomes (`role_flow_a<i>_r<j>`) are the share of a repository-month's review interactions from author role i to reviewer role j (0 core, 1 other human, 2 bot). The core is the smallest set of human reviewers covering `CORE_COVERAGE` of human review interactions in the 12 months before `CORE_FREEZE`, held fixed for every month. A month enters with at least ten interactions, and repositories with no human review activity in the freeze window have no core and drop out, so role-flow results use fewer repositories than the other outcomes. `author_reviewer_edges.csv.gz` dates interactions by merge month and covers merged pull requests; `merge_status.R` uses `author_reviewer_edges_by_status.csv.gz`, dated by review month, and defines the core within each merge status.
+- Role-flow outcomes (`role_flow_a<i>_r<j>`) are the share of a repository-month's review interactions from author role i to reviewer role j (0 core, 1 other human, 2 bot). The core is the smallest set of human reviewers covering `CORE_COVERAGE` of human review interactions in the 12 months before `CORE_FREEZE`, held fixed for every month. A month enters with at least ten interactions, and repositories with no human review activity in the freeze window have no core and drop out, so role-flow results use fewer repositories than the other outcomes. `author_reviewer_edges.csv.gz` dates interactions by merge month and covers merged pull requests; `scripts/merge_status.R` uses `author_reviewer_edges_by_status.csv.gz`, dated by review month, and defines the core within each merge status.
 - `output/balance.csv`: on the 6-month-baseline sample, ever-treated versus never-treated balance (means, SDs, standardised mean difference) for `pr_activity_6m` and `noncompany_governance`, plus propensity-score overlap (quantiles, min and max, share outside common support, share with score above 0.95) from a logit of ever-treated on `pr_activity_6m`. Rows are indexed by `section` (`covariate_balance` or `propensity_overlap`).
 - `output/balance_pscores.csv`: unit-level propensity scores (`repo`, `ever_treated`, `pscore`, `in_common_support`) for the common-support plot.
 
@@ -87,20 +87,20 @@ export ROLE_TYPES=...       # login-type table for the role-flow outcomes (defau
 export CORE_COVERAGE=0.75   # share of human review interactions covered by the core (role-flow outcomes)
 export CORE_FREEZE=2025-01  # end of the core window; earlier adopters use their treatment month
 export SAVE_OBJECTS=0       # 1 saves the fitted did objects to output/objects (large; off by default)
-export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in robustness.R
+export STRICT_DATA_CHECKS=0 # skip the owner-clean repository-count check in scripts/robustness.R
 ```
 
 `DID_OUTCOMES` applies to every script and overwrites the files in the results directory. To run a subset without replacing the full-suite files, set `OUTPUT_DIR` to another directory, for example:
 
 ```bash
-OUTPUT_DIR=results/role_flows DID_OUTCOMES=role_flow_a0_r2 Rscript main_estimates.R
+OUTPUT_DIR=results/role_flows DID_OUTCOMES=role_flow_a0_r2 Rscript scripts/main_estimates.R
 ```
 
 The core is fixed per repository, so role-flow results depend on `CORE_COVERAGE` and `CORE_FREEZE`. To run the coverage sensitivity:
 
 ```bash
 for c in 0.3 0.5 0.75; do
-  CORE_COVERAGE=$c OUTPUT_DIR=results/core_$c DID_OUTCOMES=$(Rscript -e 'source("config.R"); cat(ROLE_FLOW_OUTCOMES, sep = ",")') Rscript main_estimates.R
+  CORE_COVERAGE=$c OUTPUT_DIR=results/core_$c DID_OUTCOMES=$(Rscript -e 'source("config.R"); cat(ROLE_FLOW_OUTCOMES, sep = ",")') Rscript scripts/main_estimates.R
 done
 ```
 
