@@ -17,7 +17,7 @@ Rscript run_all.R
 `run_all.R` changes to the package root and runs, in one R session:
 
 1. `scripts/main_estimates.R`: CS-DiD estimates for all specifications (`main_cs.csv`) and static TWFE (`twfe_static.csv`).
-2. `scripts/balance.R`: pre-treatment balance and overlap diagnostics (`balance.csv`, `balance_pscores.csv`).
+2. `scripts/balance.R`: pre-treatment balance and overlap diagnostics (`balance.csv`, `balance_pscores.csv`) and treated repositories' pre-adoption outcome levels (`pre_means.csv`).
 3. `scripts/robustness.R`: never-treated, owner-clean and placebo exercises (`robustness.csv`).
 4. `scripts/spillover.R`: within-owner and cross-owner spillover analysis (`spillover_*.csv`).
 5. `scripts/merge_status.R`: role-flow estimates on interactions with merged and unmerged pull requests (`role_flows_by_status.csv`).

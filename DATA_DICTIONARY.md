@@ -94,5 +94,6 @@ Gzip-compressed CSV, one row per repository, review month, author-reviewer pair 
 | `spillover_within_owner.csv`, `spillover_cross_owner.csv` | Spillover aggregate and event-time estimates. |
 | `spillover_network_stats.csv` | Size of the cross-owner exposure network for each overlap threshold. |
 | `balance.csv`, `balance_pscores.csv` | Pre-treatment balance, overlap diagnostics and unit-level propensity scores. |
+| `pre_means.csv` | Mean and median of each outcome for treated repositories in the six months before adoption, among repositories with a six-month pre-period activity baseline. |
 | `role_flows_by_status.csv` | Role-flow ATTs for merged and unmerged pull requests (`pr_status`), main and unadjusted specifications. |
 | `dynamic_cs.csv` | Event-time aggregate ATT (`e` = -6 to 6) per outcome, main specification, with standard error and uniform critical value (`crit_val`). |
