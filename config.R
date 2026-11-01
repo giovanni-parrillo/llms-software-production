@@ -188,6 +188,11 @@ prepare_data <- function(role_flows = role_flows_cached()) {
   panel <- read_csv(file.path(DATA_DIR, "repo_month.csv"), show_col_types = FALSE)
   master <- read_csv(file.path(DATA_DIR, "repo_master.csv"), show_col_types = FALSE)
 
+  # The panel starts in January 2022, the start of the pull-request history.
+  if (any(panel$month < "2022-01")) {
+    stop("repo_month.csv contains months before 2022-01.")
+  }
+
   # Treatment timing is the first validated AI-enablement month.  Never-treated
   # repositories use gname = 0, the convention expected by did.
   created <- ym_period(master$created_at)
