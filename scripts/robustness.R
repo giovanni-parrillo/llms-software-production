@@ -38,7 +38,7 @@ r_never <- run_cs(
 
 # --- B. owner-clean comparison pool -------------------------------------------
 # An untreated repository is contaminated if another repository of the same
-# observed owner is treated within the analysis sample. Treated repositories are
+# observed owner is ever treated in the full panel. Treated repositories are
 # always kept; only potential controls are removed.
 owner_status <- d$full |>
   distinct(repo, owner, gname) |>

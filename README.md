@@ -2,7 +2,7 @@
 
 Replication package for the repository-level empirical analysis of Giovanni Parrillo's master's
 thesis. The repository contains the analytical datasets, R scripts and estimation outputs for the
-Callaway–Sant'Anna difference-in-differences analysis, the two-way fixed-effects comparison, balance
+Callaway-Sant'Anna difference-in-differences analysis, the two-way fixed-effects comparison, balance
 diagnostics, robustness checks, the spillover analysis, review-role flows by pull-request merge status
 and event-time estimates.
 

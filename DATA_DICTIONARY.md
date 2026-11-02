@@ -32,6 +32,7 @@ One row per sampled repository.
 | `repo` | text | Repository, `owner/name`. Join key. |
 | `owner` | text | Repository owner (organisation name). |
 | `created_at` | ISO 8601 timestamp | Repository creation time. Panel rows before creation are dropped. |
+| `first_ai_month` | `YYYY-MM` or empty | As in `repo_month.csv`. Sets the end of the core window for repositories adopting before `CORE_FREEZE`. |
 | `owner_entity_type` | text | Owner classification. `company` is coded as company governance; any other value as non-company. |
 
 The free-text `description` column was removed from the shipped copy because it contained personal
@@ -88,7 +89,7 @@ Gzip-compressed CSV, one row per repository, review month, author-reviewer pair 
 
 | File | Contents |
 |---|---|
-| `main_cs.csv` | Callaway–Sant'Anna aggregate ATT, standard error and 95% interval, per specification and outcome. Rows with `analysis` = `core coverage 30%` or `core coverage 50%` hold the role-flow outcomes, main specification, when the core covers 30% or 50% of human review interactions instead of 75%. |
+| `main_cs.csv` | Callaway-Sant'Anna aggregate ATT, standard error and 95% interval, per specification and outcome. Rows with `analysis` = `core coverage 30%` or `core coverage 50%` hold the role-flow outcomes, main specification, when the core covers 30% or 50% of human review interactions instead of 75%. |
 | `twfe_static.csv` | Static two-way fixed-effects estimate per outcome, with repository-clustered standard errors. |
 | `robustness.csv` | Never-treated, owner-clean and placebo estimates, per outcome. |
 | `spillover_within_owner.csv`, `spillover_cross_owner.csv` | Spillover aggregate ATT and standard error per exposure definition and outcome, with the numbers of exposed and control repositories. |
