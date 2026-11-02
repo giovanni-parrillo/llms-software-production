@@ -18,6 +18,9 @@ DATA_DIR <- file.path(PROJECT_DIR, "data")
 OUT <- Sys.getenv("OUTPUT_DIR", file.path(PROJECT_DIR, "output"))
 dir.create(OUT, showWarnings = FALSE, recursive = TRUE)
 
+# Login-type table for the role-flow outcomes
+ROLE_TYPES <- Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv"))
+
 # SAVE_OBJECTS=1 keeps the fitted did objects in output/objects (large).
 SAVE_OBJECTS <- identical(Sys.getenv("SAVE_OBJECTS", "0"), "1")
 
@@ -91,7 +94,13 @@ if (nzchar(Sys.getenv("DID_OUTCOMES"))) {
 # Convert YYYY-MM or any string beginning with YYYY-MM to an integer month index
 ym_period <- function(x) {
   x <- as.character(x)
-  as.integer(substr(x, 1, 4)) * 12 + as.integer(substr(x, 6, 7))
+  as.integer(substr(x, 1, 4)) * 12L + as.integer(substr(x, 6, 7))
+}
+
+# Owner key for common-ownership comparisons. Blank owners are not evidence of
+# common ownership, so each gets a repository-specific key.
+owner_key <- function(owner, repo) {
+  if_else(is.na(owner) | owner == "", paste0("__repo__", repo), owner)
 }
 
 # Fixed-window pre-treatment covariate: log(1 + mean PRs opened) over the window.
@@ -132,7 +141,7 @@ build_role_flows <- function(edges_path, types_path, freeze, coverage, min_inter
 
   e <- read_csv(edges_path, col_types = cols(.default = "c", n = "d"), show_col_types = FALSE)
   if (!is.null(merged)) e <- e[e$merged == as.character(merged), ]
-  e$t <- as.integer(substr(e$month, 1, 4)) * 12L + as.integer(substr(e$month, 6, 7))
+  e$t <- ym_period(e$month)
 
   out <- lapply(split(e, e$repo), function(g) {
     repo <- g$repo[1]
@@ -174,7 +183,7 @@ core_freeze <- function() {
 role_flows_at <- function(coverage) {
   build_role_flows(
     file.path(DATA_DIR, "author_reviewer_edges.csv.gz"),
-    Sys.getenv("ROLE_TYPES", file.path(DATA_DIR, "login_types.csv")),
+    ROLE_TYPES,
     freeze = core_freeze(),
     coverage = coverage
   )
@@ -249,7 +258,6 @@ prepare_data <- function(role_flows = role_flows_cached()) {
   p6_gov <- filter(p6, !is.na(noncompany_governance))
   p3_gov <- filter(p3, !is.na(noncompany_governance))
 
-
   list(
     full = panel,
     p6 = p6,
@@ -267,10 +275,10 @@ prepare_data <- function(role_flows = role_flows_cached()) {
 specifications <- function(d) list(
 
   # 1. Unadjusted estimate on the full eligible outcome sample.
-  full_sample = list(data = d$full),
+  full_sample = list(data = d$full, x = ~1),
 
   # 2. Unadjusted estimate restricted to repositories with the 6m baseline.
-  baseline6m_raw = list(data = d$p6),
+  baseline6m_raw = list(data = d$p6, x = ~1),
 
   # 3. Primary adjusted estimate: 6m baseline activity only.
   main_spec = list(data = d$p6, x = ~pr_activity_6m),

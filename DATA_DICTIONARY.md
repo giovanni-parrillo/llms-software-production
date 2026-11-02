@@ -15,7 +15,7 @@ One row per repository and calendar month.
 |---|---|---|
 | `repo` | text | Repository, `owner/name`. |
 | `month` | `YYYY-MM` | Calendar month. |
-| `first_ai_month` | `YYYY-MM` or empty | Month of the first validated AI-enablement artifact. Empty for never-treated repositories. Defines the treatment cohort. |
+| `first_ai_month` | `YYYY-MM` or empty | Month of the first validated AI-enablement artefact. Empty for never-treated repositories. Defines the treatment cohort. |
 | `opened_prs` | integer | Pull requests opened in the month. Source of the baseline covariate. |
 | `tc_mean_coordination_burden_per_pr_file` | number | Mean coordination burden per pull request, file-based unit. Log-transformed as `log_burden_mean_file`. |
 | `tc_mean_coordination_burden_per_pr_folder` | number | As above, folder-based unit. Log-transformed as `log_burden_mean_folder`. |
@@ -91,9 +91,9 @@ Gzip-compressed CSV, one row per repository, review month, author-reviewer pair 
 | `main_cs.csv` | Callaway–Sant'Anna aggregate ATT, standard error and 95% interval, per specification and outcome. Rows with `analysis` = `core coverage 30%` or `core coverage 50%` hold the role-flow outcomes, main specification, when the core covers 30% or 50% of human review interactions instead of 75%. |
 | `twfe_static.csv` | Static two-way fixed-effects estimate per outcome, with repository-clustered standard errors. |
 | `robustness.csv` | Never-treated, owner-clean and placebo estimates, per outcome. |
-| `spillover_within_owner.csv`, `spillover_cross_owner.csv` | Spillover aggregate and event-time estimates. |
+| `spillover_within_owner.csv`, `spillover_cross_owner.csv` | Spillover aggregate ATT and standard error per exposure definition and outcome, with the numbers of exposed and control repositories. |
 | `spillover_network_stats.csv` | Size of the cross-owner exposure network for each overlap threshold. |
 | `balance.csv`, `balance_pscores.csv` | Pre-treatment balance, overlap diagnostics and unit-level propensity scores. |
 | `pre_means.csv` | Mean and median of each outcome for treated repositories in the six months before adoption, among repositories with a six-month pre-period activity baseline. |
-| `role_flows_by_status.csv` | Role-flow ATTs for merged and unmerged pull requests (`pr_status`), main and unadjusted specifications. |
+| `role_flows_by_status.csv` | Role-flow ATTs for merged and unmerged pull requests (`pr_status`), main specification. |
 | `dynamic_cs.csv` | Event-time aggregate ATT (`e` = -6 to 6) per outcome, main specification, with standard error and uniform critical value (`crit_val`). |

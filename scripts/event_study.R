@@ -1,5 +1,7 @@
 # ==============================================================================
+# Giovanni Parrillo - Thesis replication package
 # Event-time estimates for the main specification
+# (writes output/dynamic_cs.csv)
 # ==============================================================================
 # Aggregate ATT by event time e for every retained outcome, with the pointwise standard error and the
 # uniform critical value. The base period is "varying": pre-treatment estimates are one-period changes,

@@ -1,6 +1,9 @@
 # ==============================================================================
+# Giovanni Parrillo - Thesis replication package
 # Spillover analysis
-#
+# (writes output/spillover_within_owner.csv, output/spillover_cross_owner.csv
+# and output/spillover_network_stats.csv)
+# ==============================================================================
 # Effect of moving from untreated and unexposed to untreated and exposed, for
 # repositories that have not yet adopted. Exposure means that another repository
 # has adopted, and is defined in two ways:
@@ -11,20 +14,19 @@
 #      active up to NET_END, and held fixed.
 # The first exposure month plays the role of the adoption cohort in CS-DiD.
 # Controls are repositories not yet exposed. Observations are censored at a
-# repository's own adoption.
-# ==============================================================================
+# repository's own adoption. Only the aggregate (simple) ATT is reported.
 
 source("config.R")
+
 d <- prepare_data()
 
 NET_END    <- ym_period("2023-05")
 MIN_SHARED <- 2L
 THRESHOLDS <- c(0.2, 0.3)
-E_RANGE    <- c(-12, 12)
 
 repos <- d$full |>
   distinct(repo, owner, gname) |>
-  mutate(owner = if_else(is.na(owner) | owner == "", paste0("__repo__", repo), owner))
+  mutate(owner = owner_key(owner, repo))
 adoption_month <- setNames(ifelse(repos$gname > 0, repos$gname, Inf), repos$repo)
 
 # Panel with each repository exposed from exposure_month (named by repo; Inf = never exposed)
@@ -40,17 +42,15 @@ exposure_panel <- function(exposure_month) {
 fit_spill <- function(data, analysis, ys) {
   bind_rows(lapply(ys, function(y) {
     message(sprintf("Fitting %s - %s ...", analysis, y))
-    fit <- fit_cs(data, y, ~pr_activity_6m)
-    out <- list(
-      simple = aggte(fit, type = "simple", na.rm = TRUE),
-      dynamic = aggte(fit, type = "dynamic", min_e = E_RANGE[1], max_e = E_RANGE[2], na.rm = TRUE)
+    a <- aggte(fit_cs(data, y, ~pr_activity_6m), type = "simple", na.rm = TRUE)
+    tibble(
+      analysis = analysis,
+      outcome = y,
+      n_exposed = n_distinct(data$repo[data$gname > 0]),
+      n_control = n_distinct(data$repo[data$gname == 0]),
+      att = a$overall.att,
+      se = a$overall.se
     )
-    bind_rows(
-      tibble(type = "simple", e = NA_real_, att = out$simple$overall.att, se = out$simple$overall.se),
-      tibble(type = "dynamic", e = out$dynamic$egt, att = out$dynamic$att.egt, se = out$dynamic$se.egt)
-    ) |> mutate(analysis = analysis, outcome = y,
-                n_exposed = n_distinct(data$repo[data$gname > 0]),
-                n_control = n_distinct(data$repo[data$gname == 0]), .before = 1)
   }))
 }
 

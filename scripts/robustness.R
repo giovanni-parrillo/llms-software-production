@@ -1,14 +1,17 @@
 # ==============================================================================
+# Giovanni Parrillo - Thesis replication package
 # Robustness exercises
-#
+# (writes output/robustness.csv)
+# ==============================================================================
+# Three exercises on the main specification:
 #   A. never-treated comparison group;
 #   B. owner-clean comparison pool: potential controls that share an owner with a
 #      treated repository are removed;
 #   C. three-month lead placebo, using only pre-treatment observations.
 # The spillover analysis is a fourth exercise, in spillover.R.
-# ==============================================================================
 
 source("config.R")
+
 d <- prepare_data()
 
 if (!SAVE_OBJECTS) {
@@ -39,11 +42,7 @@ r_never <- run_cs(
 # always kept; only potential controls are removed.
 owner_status <- d$full |>
   distinct(repo, owner, gname) |>
-  mutate(
-    # Blank owners are not evidence of common ownership. Give them a
-    # repository-specific key so they do not form one shared-owner cluster.
-    owner_key = if_else(is.na(owner) | owner == "", paste0("__repo__", repo), owner)
-  )
+  mutate(owner_key = owner_key(owner, repo))
 
 treated_owners <- owner_status |>
   filter(gname > 0) |>

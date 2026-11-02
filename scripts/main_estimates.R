@@ -1,6 +1,7 @@
 # ==============================================================================
 # Giovanni Parrillo - Thesis replication package
 # Main CS-DiD estimates and static TWFE comparison
+# (writes output/main_cs.csv and output/twfe_static.csv)
 # ==============================================================================
 
 source("config.R")
